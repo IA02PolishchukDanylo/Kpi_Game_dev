@@ -15,7 +15,6 @@ public class JumpPointController : MonoBehaviour
     private void OnCollisionExit2D(Collision2D collision)
     {
         _isJumping = true;
-       // _wallrun = false;
     }
 
     
