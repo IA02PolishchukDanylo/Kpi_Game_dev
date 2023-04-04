@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 
@@ -8,86 +9,61 @@ namespace Player
 
     public class PlayerEntity : MonoBehaviour
     {
-        [Header("HorizontalMovement")]
-        [SerializeField] private float _horizontalSpeed;
-        [SerializeField] private bool _faceRight;
+        [SerializeField] private DirectionalMovementData _directionalMovementData;
+        [SerializeField] private JumperData _jumperData;
+
+        private DirectionMover _directionMover;
+        private Jumper _jumper;
 
         [Header("Jump")]
-        [SerializeField] private float _jumpForce;
+        [SerializeField] private JumpPointController _jumpPointController;
         [SerializeField] private bool _isJumping;
+        
 
-        private Rigidbody2D _rigidbody;
         [SerializeField] private bool _isAttacking;
 
+        private Rigidbody2D _rigidbody;
+
         [SerializeField] private Animator _animator;
-        private Vector2 _movement;
         private AnimationType _currentAnimationType;
 
         
+        
+
+
         private void Start()
         {
             _rigidbody = GetComponent<Rigidbody2D>();
+            _directionMover = new DirectionMover(_rigidbody, _directionalMovementData);
+            _jumper = new Jumper(_rigidbody, _jumpPointController, _jumperData);
         }
         private void Update()
         {
+            GetIsJump();
             UpdateAnimations();
+
         }
-        public void Attack()
-        {
-            Debug.Log("attack");
-            _isAttacking = true;
-        }
+        private void GetIsJump() { _isJumping = _jumpPointController.IsJumping(); }
         
         private void UpdateAnimations() 
         {
             PlayAnimation(AnimationType.Idle, true);
-            PlayAnimation(AnimationType.Run, _movement.magnitude > 0);
+            PlayAnimation(AnimationType.Run, _directionMover.IsMoving);
             PlayAnimation(AnimationType.Jump, _isJumping);
             PlayAnimation(AnimationType.Attack, _isAttacking);
         }
-        public void MoveHorizontally(float direction) 
+        public void Attack() 
         {
-            _movement.x = direction;
-            SetDirection(direction);
-            Vector2 velocity = _rigidbody.velocity;
-            velocity.x = direction * _horizontalSpeed;
-            _rigidbody.velocity = velocity;
+            _isAttacking = true;
+ 
         }
-        
-        
-        private void SetDirection(float direction) 
+        public void StopAttack()
         {
-            if((!_faceRight && direction < 0) ||
-                (_faceRight && direction > 0)) 
-            {
-                Flip();
-            }
+            _isAttacking = false;
         }
-        private void Flip() 
-        {
-            transform.Rotate(0,180,0);
-            _faceRight = !_faceRight;
-        }
-        
-        public void Jump() 
-        {
-            if (_isJumping) 
-            {
-                return;
-            }
-            _rigidbody.AddForce(Vector2.up * _jumpForce);
-            
-        }
-
-        private void OnCollisionStay2D(Collision2D collision)
-        {
-            _isJumping = false;
-            
-        }
-        private void OnCollisionExit2D(Collision2D collision)
-        {
-            _isJumping = true;
-        }   
+        public void MoveHorizontally(float direction) => _directionMover.MoveHorizontally(direction);
+        public void Jump() => _jumper.Jump();
+       
         private void PlayAnimation(AnimationType animationType, bool active) 
         {
             if (!active) 
